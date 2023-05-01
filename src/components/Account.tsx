@@ -29,7 +29,7 @@ export const Account: Component = () => {
         <div class="flex justify-center">
           <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
         </div>
-        <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center space-y-4">
           <For each={transactions.state?.data}>
             {(transaction) => {
               const createDate = new Date(transaction.attributes.createdAt);
@@ -40,7 +40,7 @@ export const Account: Component = () => {
               const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`
 
               return (
-                <div class="card w-96 shadow-xl">
+                <div class="card w-96 bg-slate-900 drop-shadow-lg">
                   <div class="card-body">
                     <div class="flex justify-between">
                       <div class="flex flex-col">
