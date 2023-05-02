@@ -42,7 +42,8 @@ export async function setClient(token: string) {
 
 export function useClient(func: (api: UpApi) => void) {
   if (!client.state) {
-    throw new Error("No client available!");
+    console.warn(`No client available`);
+    return;
   }
 
   func(client.state);

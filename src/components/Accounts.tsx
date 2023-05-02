@@ -2,7 +2,12 @@ import { Component, For, createEffect, onMount } from "solid-js";
 import { State } from "../helper/signal";
 import { useClient } from "../controller";
 import { useNavigate } from "@solidjs/router";
-import { AccountResource } from "up-bank-api";
+import { AccountResource, AccountTypeEnum } from "up-bank-api";
+
+
+const accountTypeMap = new Map<AccountTypeEnum, number>();
+accountTypeMap.set(AccountTypeEnum.transactional, 0);
+accountTypeMap.set(AccountTypeEnum.saver, 1);
 
 export const Accounts: Component = () => {
 
@@ -12,6 +17,8 @@ export const Accounts: Component = () => {
   createEffect(() => {
     useClient((client) => {
       client.accounts.list().then(accounts => {
+        accounts.data.sort((a, b) => b.attributes.balance.valueInBaseUnits - a.attributes.balance.valueInBaseUnits);
+        accounts.data.sort((a, b) => (accountTypeMap.get(a.attributes.accountType) ?? 0) - (accountTypeMap.get(b.attributes.accountType) ?? 0))
         accountsState.state = accounts.data
       })
     })
