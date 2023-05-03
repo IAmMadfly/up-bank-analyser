@@ -116,16 +116,19 @@ export const Account: Component = () => {
                           </div>
                         </div>
                       </div>
-                      <div class="flex space-x-1">
+                      <div class="space-x-1">
                         <For each={transaction.relationships.tags.data}>
                           {(tag) => {
                             return (
                               <div class="badge badge-info">
-                                {tag.id}
+                                <span class="text-xs">{tag.id}</span>
                               </div>
                             )
                           }}
                         </For>
+                        <div class="btn btn-xs btn-outline btn-accent btn-circle">
+                          <span>+</span>
+                        </div>
                       </div>
                     </div>
                   </div>
