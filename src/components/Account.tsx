@@ -14,6 +14,17 @@ const dayWeekMap = {
   6: "Sun"
 }
 
+const categoryIdToName: { [key: string]: string } = {
+  "home-maintenance-and-improvements": "Maintenance & Improvements",
+  "health-and-medical": "Health",
+  "internet": "Internet",
+  "car-insurance-and-maintenance": "Car Stuff",
+  "fuel": "Fuel",
+  "tv-and-music": "TV & Music",
+  "groceries": "Groceries",
+  "utilities": "Utilities"
+}
+
 function differentDay(a: Date, b: Date) {
   if (
     a.getDate() != b.getDate() ||
@@ -63,10 +74,15 @@ export const Account: Component = () => {
   }
 
   return (
-    <div onScroll={() => { console.log('SCROLLING') }}>
+    <div class="flex flex-col items-center">
       <Show when={account.state !== null} fallback={<div>loading...</div>}>
-        <div class="flex justify-center">
-          <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
+        <div class="card flex flex-col w-96 bg-slate-700 mb-2">
+          <div class="card-title justify-center">
+            <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
+          </div>
+          <div class="card-body">
+            <h4>{account.state ? new Date(account.state?.attributes.createdAt).toDateString() : ""}</h4>
+          </div>
         </div>
         <div class="flex flex-col items-center space-y-4">
           <For each={transactionData.state} fallback={<div class="animation-spin">Loading</div>}>
@@ -82,6 +98,10 @@ export const Account: Component = () => {
               const roundUp = transaction.attributes.roundUp
               const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
               const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`
+
+              const categoryName = transaction.relationships.category.data?.id ?
+                (categoryIdToName[transaction.relationships.category.data.id] ?? transaction.relationships.category.data.id) :
+                "N/A"
 
               let newDayElem = <></>
               if (newDay) {
@@ -101,18 +121,18 @@ export const Account: Component = () => {
                     <div class="card-body w-96">
                       <div class="flex justify-between">
                         <div class="flex flex-col">
-                          <span>{transaction.attributes.description}</span>
+                          <span class="text-sm">{transaction.attributes.description}</span>
                           <span class="text-xs">{transaction.attributes.message}</span>
                         </div>
                         <div class="flex flex-col items-end">
                           <span class={`${neg ? "text-red-400" : "text-green-400"} text-right`}>{amountDisplay}</span>
                           <Show when={transaction.relationships.category.data != null}>
                             <div class="flex justify-end">
-                              <span class="text-xs">{transaction.relationships.category?.data?.id ?? ""}</span>
+                              <span class="text-xs">{categoryName}</span>
                             </div>
                           </Show>
                           <div class="badge tooltip tooltip-bottom flex justify-end" data-tip={settleDate ? `Settled: ${settleDate.toLocaleString()}` : "Held"}>
-                            <span class="text-xs">{`${createDate.toLocaleTimeString()}`}</span>
+                            <span class="text-xs whitespace-nowrap">{`${createDate.toLocaleTimeString()}`}</span>
                           </div>
                         </div>
                       </div>
