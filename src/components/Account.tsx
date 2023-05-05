@@ -1,8 +1,11 @@
 import { useParams } from "@solidjs/router";
 import { Component, For, Show, createEffect } from "solid-js";
 import { State } from "../helper/signal";
-import { AccountResource, ListTransactionsResponse, TransactionResource } from "up-bank-api";
+import { AccountResource, ListTransactionsResponse, TagInputResourceIdentifier, TagResource, TransactionResource } from "up-bank-api";
+import { HiOutlineArrowCircleUp } from 'solid-icons/hi'
 import { useClient } from "../controller";
+import { LoadingIcon } from "./LoadingIcon";
+import { NavBar } from "./NavBar";
 
 const dayWeekMap = {
   0: "Mon",
@@ -59,7 +62,20 @@ export const Account: Component = () => {
     })
   })
 
+  async function removeTag(transaction: TransactionResource, tag: TagInputResourceIdentifier) {
+    useClient((client) => {
+      client.tags.removeTagsFromTransaction(transaction.id, [tag])
+        .catch((err) => {
+          console.error(`Failed to remove tag. Error:`, err);
+        })
+    })
+  }
+
   async function loadMore() {
+    if (loadingMore.state) {
+      console.warn(`Already loading more. Cannot request again`);
+      return;
+    }
     useClient((client) => {
       loadingMore.state = true;
       const nextLink = transactions.state?.links.next;
@@ -74,96 +90,112 @@ export const Account: Component = () => {
   }
 
   return (
-    <div class="flex flex-col items-center">
-      <Show when={account.state !== null} fallback={<div>loading...</div>}>
-        <div class="card flex flex-col w-96 bg-slate-700 mb-2">
-          <div class="card-title justify-center">
-            <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
+    <>
+      <NavBar />
+      <div class="flex flex-col items-center mt-2">
+        <Show when={account.state !== null} fallback={<div>loading...</div>}>
+          <div class="card flex flex-col w-96 bg-slate-700 mb-2">
+            <div class="card-title justify-center">
+              <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
+            </div>
+            <div class="card-body">
+              <h4>{account.state ? new Date(account.state?.attributes.createdAt).toDateString() : ""}</h4>
+            </div>
           </div>
-          <div class="card-body">
-            <h4>{account.state ? new Date(account.state?.attributes.createdAt).toDateString() : ""}</h4>
-          </div>
-        </div>
-        <div class="flex flex-col items-center space-y-4">
-          <For each={transactionData.state} fallback={<div class="animation-spin">Loading</div>}>
-            {(transaction, index) => {
-              const prevDateString = transactions.state!.data[index() - 1]?.attributes.createdAt
-              const prevDate = prevDateString ? new Date(prevDateString) : undefined
-              const createDate = new Date(transaction.attributes.createdAt);
-              const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
-              const newDay = prevDate ? differentDay(createDate, prevDate) : true;
+          <div class="flex flex-col items-center space-y-4">
+            <For each={transactionData.state} fallback={<div class="animation-spin">Loading</div>}>
+              {(transaction, index) => {
+                const prevDateString = transactions.state!.data[index() - 1]?.attributes.createdAt
+                const prevDate = prevDateString ? new Date(prevDateString) : undefined
+                const createDate = new Date(transaction.attributes.createdAt);
+                const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
+                const newDay = prevDate ? differentDay(createDate, prevDate) : true;
 
-              const neg = transaction.attributes.amount.valueInBaseUnits < 0;
-              const amount = transaction.attributes.amount.valueInBaseUnits;
-              const roundUp = transaction.attributes.roundUp
-              const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
-              const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`
+                const neg = transaction.attributes.amount.valueInBaseUnits < 0;
+                const amount = transaction.attributes.amount.valueInBaseUnits;
+                const roundUp = transaction.attributes.roundUp
+                const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
+                const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`;
 
-              const categoryName = transaction.relationships.category.data?.id ?
-                (categoryIdToName[transaction.relationships.category.data.id] ?? transaction.relationships.category.data.id) :
-                "N/A"
+                const categoryName = transaction.relationships.category.data?.id ?
+                  (categoryIdToName[transaction.relationships.category.data.id] ?? transaction.relationships.category.data.id) :
+                  "N/A"
 
-              let newDayElem = <></>
-              if (newDay) {
-                newDayElem = (
-                  <div class="card bg-slate-800 w-80 h-12">
-                    <div class="flex h-full justify-center items-center align-bottom">
-                      <span>{`${dayWeekMap[createDate.getDay()]}, ${createDate.toLocaleDateString()}`}</span>
+                let newDayElem = <></>
+                if (newDay) {
+                  newDayElem = (
+                    <div class="card bg-slate-800 w-80 h-12">
+                      <div class="flex h-full justify-center items-center align-bottom">
+                        <span>{`${dayWeekMap[createDate.getDay()]}, ${createDate.toLocaleDateString()}`}</span>
+                      </div>
                     </div>
-                  </div>
-                )
-              }
+                  )
+                }
 
-              return (
-                <>
-                  {newDayElem}
-                  <div class="card bg-slate-900 drop-shadow-lg">
-                    <div class="card-body w-96">
-                      <div class="flex justify-between">
-                        <div class="flex flex-col">
-                          <span class="text-sm">{transaction.attributes.description}</span>
-                          <span class="text-xs">{transaction.attributes.message}</span>
-                        </div>
-                        <div class="flex flex-col items-end">
-                          <span class={`${neg ? "text-red-400" : "text-green-400"} text-right`}>{amountDisplay}</span>
-                          <Show when={transaction.relationships.category.data != null}>
-                            <div class="flex justify-end">
-                              <span class="text-xs">{categoryName}</span>
+                return (
+                  <>
+                    {newDayElem}
+                    <div class="card bg-slate-900 drop-shadow-lg">
+                      <div class="card-body w-96">
+                        <div class="flex justify-between">
+                          <div class="flex flex-col">
+                            <span class="text-sm">{transaction.attributes.description}</span>
+                            <span class="text-xs">{transaction.attributes.message}</span>
+                          </div>
+                          <div class="flex flex-col items-end">
+                            <div class="flex flex-row items-center space-x-1">
+                              <Show when={transaction.attributes.roundUp}>
+                                <div class="tooltip" data-tip={`$${Math.abs(roundUp ? parseFloat(roundUp.amount.value) : NaN).toFixed(2)}`}>
+                                  <HiOutlineArrowCircleUp color="red" />
+                                </div>
+                              </Show>
+                              <span class={`${neg ? "text-red-400" : "text-green-400"} text-right`}>{amountDisplay}</span>
                             </div>
-                          </Show>
-                          <div class="badge tooltip tooltip-bottom flex justify-end" data-tip={settleDate ? `Settled: ${settleDate.toLocaleString()}` : "Held"}>
-                            <span class="text-xs whitespace-nowrap">{`${createDate.toLocaleTimeString()}`}</span>
+                            <Show when={transaction.relationships.category.data != null}>
+                              <div class="flex justify-end">
+                                <span class="text-xs">{categoryName}</span>
+                              </div>
+                            </Show>
+                            <div class="badge tooltip tooltip-bottom flex justify-end" data-tip={settleDate ? `Settled: ${settleDate.toLocaleString()}` : "Held"}>
+                              <span class="text-xs whitespace-nowrap">{`${createDate.toLocaleTimeString()}`}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="space-x-1">
+                          <For each={transaction.relationships.tags.data}>
+                            {(tag, index) => {
+                              return (
+                                <div class="badge badge-info hover:badge-error" onClick={() => {
+                                  removeTag(transaction, tag);
+                                  transaction.relationships.tags.data = transaction.relationships.tags.data.filter((_, i) => index() != i);
+                                }}>
+                                  <span class="text-xs">{tag.id}</span>
+                                </div>
+                              )
+                            }}
+                          </For>
+                          <div class="btn btn-xs btn-outline btn-accent btn-circle">
+                            <span>+</span>
                           </div>
                         </div>
                       </div>
-                      <div class="space-x-1">
-                        <For each={transaction.relationships.tags.data}>
-                          {(tag) => {
-                            return (
-                              <div class="badge badge-info">
-                                <span class="text-xs">{tag.id}</span>
-                              </div>
-                            )
-                          }}
-                        </For>
-                        <div class="btn btn-xs btn-outline btn-accent btn-circle">
-                          <span>+</span>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                </>
-              )
-            }}
-          </For>
-          <Show when={!loadingMore.state && transactionData.state.length > 0}>
-            <div class="btn" onClick={loadMore} >
-              Load More
-            </div>
-          </Show>
-        </div>
-      </Show>
-    </div>
+                  </>
+                )
+              }}
+            </For>
+            <Show when={transactionData.state.length > 0}>
+              <div class="btn" onClick={loadMore} >
+                <span class={loadingMore.state ? "mr-2" : ""}>Load More</span>
+                <Show when={loadingMore.state}>
+                  <LoadingIcon />
+                </Show>
+              </div>
+            </Show>
+          </div>
+        </Show>
+      </div>
+    </>
   )
 }
 

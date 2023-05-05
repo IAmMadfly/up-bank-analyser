@@ -19,6 +19,7 @@
   "dependencies": {
     "@solidjs/router": "^0.8.2",
     "daisyui": "^2.51.6",
+    "solid-icons": "^1.0.4",
     "solid-js": "^1.7.3",
     "up-bank-api": "^1.5.2"
   }
