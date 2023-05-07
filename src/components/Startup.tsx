@@ -19,7 +19,7 @@ export const StartUp: Component<{ clientHave: State<boolean> }> = ({ clientHave 
       <input onChange={(e) => setKey(e.currentTarget.value)} type="text" placeholder="API Key" class="input input-bordered w-full max-w-sm" />
       <button class="btn m-2" onClick={() => submitApiKey()}>Ok</button>
       <Show when={clientHave.state}>
-        <span>SUCCESS</span>
+        <span>Account Found</span>
       </Show>
     </div>
   )

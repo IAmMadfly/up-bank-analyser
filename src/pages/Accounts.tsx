@@ -3,7 +3,7 @@ import { State } from "../helper/signal";
 import { useClient } from "../controller";
 import { useNavigate } from "@solidjs/router";
 import { AccountResource, AccountTypeEnum } from "up-bank-api";
-import { NavBar } from "./NavBar";
+import { NavBar } from "../components/NavBar";
 
 
 const accountTypeMap = new Map<AccountTypeEnum, number>();

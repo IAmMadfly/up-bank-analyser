@@ -1,8 +1,7 @@
 import { Component, Show, createEffect } from "solid-js";
 import { State } from "../helper/signal";
-import { StartUp } from "./Startup";
-import { Accounts } from "./Accounts";
-import { Logo } from "./Logo";
+import { StartUp } from "../components/Startup";
+import { Logo } from "../components/Logo";
 import { useNavigate } from "@solidjs/router";
 
 
