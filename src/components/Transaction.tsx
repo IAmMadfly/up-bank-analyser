@@ -1,5 +1,6 @@
 import { HiOutlineArrowCircleUp } from "solid-icons/hi";
 import { Component, For, Show, createSignal } from "solid-js";
+import { createStore } from "solid-js/store"
 import { TransactionResource, TagInputResourceIdentifier } from "up-bank-api";
 
 
@@ -33,28 +34,37 @@ class TransactionData {
 export const Transaction: Component<{
   transactionData: TransactionResource,
   removeTag?: (transaction: TransactionResource, tag: TagInputResourceIdentifier) => Promise<void>,
-  addTag?: (transaction: TransactionResource, tag: TagInputResourceIdentifier) => Promise<void>
+  addTag?: (transaction: TransactionResource, tag: string) => Promise<void>
 }> = ({ transactionData, removeTag, addTag }) => {
-  const [transaction, setTransaction] = createSignal(transactionData);
-  const createDate = new Date(transaction().attributes.createdAt);
-  const settleDate = transaction().attributes.settledAt ? new Date(transaction().attributes.settledAt) : undefined;
+  const [transaction, setTransaction] = createStore(transactionData);
+  const createDate = new Date(transaction.attributes.createdAt);
+  const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
 
-  const neg = transaction().attributes.amount.valueInBaseUnits < 0;
-  const amount = transaction().attributes.amount.valueInBaseUnits;
-  const roundUp = transaction().attributes.roundUp
+  const neg = transaction.attributes.amount.valueInBaseUnits < 0;
+  const amount = transaction.attributes.amount.valueInBaseUnits;
+  const roundUp = transaction.attributes.roundUp
   const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
   const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`;
 
-  const categoryName = transaction().relationships.category.data?.id ?
-    (categoryIdToName[transaction().relationships.category.data!.id] ?? transaction().relationships.category.data!.id) :
+  const categoryName = transaction.relationships.category.data?.id ?
+    (categoryIdToName[transaction.relationships.category.data!.id] ?? transaction.relationships.category.data!.id) :
     "N/A"
 
   function removeTagHandler(tag: TagInputResourceIdentifier, index: number) {
     if (removeTag) {
-      removeTag(transaction(), tag);
-      const newTransaction = transaction();
-      newTransaction.relationships.tags.data = transaction().relationships.tags.data.filter((_, i) => index != i);
+      removeTag(transaction, tag);
+      const newTransaction = transaction;
+      newTransaction.relationships.tags.data = transaction.relationships.tags.data.filter((_, i) => index != i);
       setTransaction(newTransaction);
+    }
+  }
+
+  function addTagHandler(tagName: string) {
+    if (addTag) {
+      addTag(transaction, tagName);
+      const newRel = transaction.relationships;
+      newRel.tags.data.push({ id: tagName, type: "tags" });
+      setTransaction((t) => ({ ...transaction, relationships: newRel }));
     }
   }
 
@@ -63,19 +73,19 @@ export const Transaction: Component<{
       <div class="card-body w-96">
         <div class="flex justify-between">
           <div class="flex flex-col">
-            <span class="text-sm">{transaction().attributes.description}</span>
-            <span class="text-xs">{transaction().attributes.message}</span>
+            <span class="text-sm">{transaction.attributes.description}</span>
+            <span class="text-xs">{transaction.attributes.message}</span>
           </div>
           <div class="flex flex-col items-end">
             <div class="flex flex-row items-center space-x-1">
-              <Show when={transaction().attributes.roundUp}>
+              <Show when={transaction.attributes.roundUp}>
                 <div class="tooltip" data-tip={`$${Math.abs(roundUp ? parseFloat(roundUp.amount.value) : NaN).toFixed(2)}`}>
                   <HiOutlineArrowCircleUp color="red" />
                 </div>
               </Show>
               <span class={`${neg ? "text-red-400" : "text-green-400"} text-right`}>{amountDisplay}</span>
             </div>
-            <Show when={transaction().relationships.category.data != null}>
+            <Show when={transaction.relationships.category.data != null}>
               <div class="flex justify-end">
                 <span class="text-xs">{categoryName}</span>
               </div>
@@ -86,7 +96,7 @@ export const Transaction: Component<{
           </div>
         </div>
         <div class="space-x-1">
-          <For each={transaction().relationships.tags.data}>
+          <For each={transaction.relationships.tags.data}>
             {(tag, index) => {
               return (
                 <div class="badge badge-info hover:badge-error" onClick={() => { removeTagHandler(tag, index()) }}>
@@ -95,7 +105,7 @@ export const Transaction: Component<{
               )
             }}
           </For>
-          <div class="btn btn-xs btn-outline btn-accent btn-circle">
+          <div class="btn btn-xs btn-outline btn-accent btn-circle" onClick={() => { addTagHandler("added") }}>
             <span>+</span>
           </div>
         </div>

@@ -60,6 +60,12 @@ export const Account: Component = () => {
     })
   }
 
+  async function addTag(transaction: TransactionResource, tagName: string) {
+    useClient((client) => {
+      client.tags.addTagsToTransaction(transaction.id, [{ id: tagName, type: "tags" }])
+    })
+  }
+
   async function loadMore() {
     if (loadingMore.state) {
       console.warn(`Already loading more. Cannot request again`);
@@ -120,7 +126,7 @@ export const Account: Component = () => {
                 return (
                   <>
                     {newDayElem}
-                    <Transaction transactionData={transaction} removeTag={removeTag} />
+                    <Transaction transactionData={transaction} removeTag={removeTag} addTag={addTag} />
                   </>
                 )
               }}
