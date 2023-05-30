@@ -4,6 +4,7 @@ import { useClient } from "../controller";
 import { State } from "../helper/signal";
 import { ListTransactionsResponse } from "up-bank-api";
 import { Transaction } from "../components/Transaction";
+import { LoadMoreButton } from "../components/LoadMoreButton";
 
 
 
@@ -13,6 +14,7 @@ import { Transaction } from "../components/Transaction";
 
 export const Transactions: Component = () => {
 
+  const loading = new State(false);
   const transactionListState = new State(new Array<ListTransactionsResponse>());
   const transactions = () => transactionListState.state
     .flatMap(trans => trans.data)
@@ -20,8 +22,10 @@ export const Transactions: Component = () => {
 
   createEffect(() => {
     useClient((client) => {
+      loading.state = true;
       client.transactions.list().then((transactionsRes) => {
         transactionListState.state = [transactionsRes];
+        loading.state = false;
       })
     })
   });
@@ -38,8 +42,11 @@ export const Transactions: Component = () => {
       throw new Error("No next values");
     }
 
+    loading.state = true
     nextFn().then(res => {
       transactionListState.state = [...transactionListState.state, res];
+    }).finally(() => {
+      loading.state = false;
     })
   }
 
@@ -58,13 +65,9 @@ export const Transactions: Component = () => {
               )
             }}
           </For>
-          <Show when={true}>
-            <div class="flex justify-center">
-              <button class="btn" onClick={() => loadMoreHandler()}>
-                Load more
-              </button>
-            </div>
-          </Show>
+          <div class="flex justify-center">
+            <LoadMoreButton loading={loading} loadMoreHandler={loadMoreHandler} />
+          </div>
         </div>
       </div>
     </>

@@ -6,6 +6,7 @@ import { useClient } from "../controller";
 import { LoadingIcon } from "../components/LoadingIcon";
 import { NavBar } from "../components/NavBar";
 import { Transaction } from "../components/Transaction"
+import { LoadMoreButton } from "../components/LoadMoreButton";
 
 const dayWeekMap = {
   0: "Mon",
@@ -71,17 +72,16 @@ export const Account: Component = () => {
       console.warn(`Already loading more. Cannot request again`);
       return;
     }
-    useClient((client) => {
-      loadingMore.state = true;
-      const nextLink = transactions.state?.links.next;
-      if (!nextLink) {
-        throw new Error("Next not available");
-      }
-      nextLink().then((transactionsRes) => {
-        transactions.state = transactionsRes;
-        transactionData.state = [...transactionData.state, ...transactionsRes.data]
-      }).finally(() => { loadingMore.state = false })
-    })
+
+    loadingMore.state = true;
+    const nextLink = transactions.state?.links.next;
+    if (!nextLink) {
+      throw new Error("Next not available");
+    }
+    nextLink().then((transactionsRes) => {
+      transactions.state = transactionsRes;
+      transactionData.state = [...transactionData.state, ...transactionsRes.data]
+    }).finally(() => { loadingMore.state = false })
   }
 
   return (
@@ -131,14 +131,9 @@ export const Account: Component = () => {
                 )
               }}
             </For>
-            <Show when={transactionData.state.length > 0}>
-              <div class="btn" onClick={loadMore} >
-                <span class={loadingMore.state ? "mr-2" : ""}>Load More</span>
-                <Show when={loadingMore.state}>
-                  <LoadingIcon />
-                </Show>
-              </div>
-            </Show>
+            <div class="flex justify-center">
+              <LoadMoreButton loading={loadingMore} loadMoreHandler={loadMore} />
+            </div>
           </div>
         </Show>
       </div>
