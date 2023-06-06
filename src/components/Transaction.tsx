@@ -1,7 +1,8 @@
 import { HiOutlineArrowCircleUp } from "solid-icons/hi";
-import { Component, For, Show, createSignal } from "solid-js";
+import { Component, For, JSX, Show, createSignal } from "solid-js";
 import { createStore } from "solid-js/store"
 import { TransactionResource, TagInputResourceIdentifier } from "up-bank-api";
+import { State } from "../helper/signal";
 
 
 const categoryIdToName: { [key: string]: string } = {
@@ -14,28 +15,24 @@ const categoryIdToName: { [key: string]: string } = {
   "groceries": "Groceries",
   "utilities": "Utilities",
   "restaurants-and-cafes": "Restaurants & Cafes",
-  "holidays-and-travel": "Holidays & Travel"
+  "holidays-and-travel": "Holidays & Travel",
+  "takeaway": "Takeaway",
+  "technology": "Technology",
+  "homeware-and-appliances": "Home & Appliances",
+  "games-and-software": "Games & Software",
+  "public-transport": "Public Transport",
+  "booze": "Booze",
+  "pubs-and-bars": "Pubs & Bars",
+  "hair-and-beauty": "Hair & Beauty"
 }
-
-
-class TransactionData {
-
-
-  constructor(data: TransactionResource) {
-    this.setData(data);
-  }
-
-  setData(data: TransactionResource) {
-
-  }
-}
-
 
 export const Transaction: Component<{
   transactionData: TransactionResource,
-  removeTag?: (transaction: TransactionResource, tag: TagInputResourceIdentifier) => Promise<void>,
-  addTag?: (transaction: TransactionResource, tag: string) => Promise<void>
+  removeTag?: (transaction: TransactionResource, tag: TagInputResourceIdentifier) => Promise<any>,
+  addTag?: (transaction: TransactionResource, tag: string) => Promise<any>
 }> = ({ transactionData, removeTag, addTag }) => {
+  let buttonRef: HTMLInputElement | undefined = undefined;
+  const creatingTag = new State(false);
   const [transaction, setTransaction] = createStore(transactionData);
   const createDate = new Date(transaction.attributes.createdAt);
   const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
@@ -50,23 +47,40 @@ export const Transaction: Component<{
     (categoryIdToName[transaction.relationships.category.data!.id] ?? transaction.relationships.category.data!.id) :
     "N/A"
 
-  function removeTagHandler(tag: TagInputResourceIdentifier, index: number) {
+  function removeTagHandler(unwantedTag: TagInputResourceIdentifier) {
     if (removeTag) {
-      removeTag(transaction, tag);
-      const newTransaction = transaction;
-      newTransaction.relationships.tags.data = transaction.relationships.tags.data.filter((_, i) => index != i);
-      setTransaction(newTransaction);
+      removeTag(transaction, unwantedTag).then(() => {
+        setTransaction("relationships", "tags", "data", (d) => d.filter((t) => t.id !== unwantedTag.id));
+      })
     }
   }
 
   function addTagHandler(tagName: string) {
     if (addTag) {
-      addTag(transaction, tagName);
-      const newRel = transaction.relationships;
-      newRel.tags.data.push({ id: tagName, type: "tags" });
-      setTransaction((t) => ({ ...transaction, relationships: newRel }));
+      addTag(transaction, tagName).then(() => {
+        setTransaction("relationships", "tags", "data", d => [...d, { type: "tags" as "tags", id: tagName }]);
+      });
     }
   }
+
+  function startCreateTag() {
+    creatingTag.state = true;
+    if (buttonRef) {
+      buttonRef.focus()
+    }
+  }
+
+  const handleTagInput: JSX.ChangeEventHandlerUnion<HTMLInputElement, Event> = (ev) => {
+    const newTagName = ev.currentTarget.value.trim();
+    addTagHandler(newTagName);
+    creatingTag.state = false;
+  }
+
+  const createTagButton = (
+    <div class="btn btn-xs btn-outline btn-accent btn-circle" onClick={() => { startCreateTag() }}>
+      <span>+</span>
+    </div>
+  )
 
   return (
     <div class="card bg-slate-900 drop-shadow-lg">
@@ -97,17 +111,19 @@ export const Transaction: Component<{
         </div>
         <div class="space-x-1">
           <For each={transaction.relationships.tags.data}>
-            {(tag, index) => {
+            {(tag) => {
               return (
-                <div class="badge badge-info hover:badge-error" onClick={() => { removeTagHandler(tag, index()) }}>
+                <div class="badge badge-info hover:badge-error" onClick={() => { removeTagHandler(tag) }}>
                   <span class="text-xs">{tag.id}</span>
                 </div>
               )
             }}
           </For>
-          <div class="btn btn-xs btn-outline btn-accent btn-circle" onClick={() => { addTagHandler("added") }}>
-            <span>+</span>
-          </div>
+          <Show when={creatingTag.state} fallback={createTagButton}>
+            <div>
+              <input ref={buttonRef} onblur={() => { creatingTag.state = false }} onChange={(ev) => handleTagInput(ev)} class="input input-sm" type="text" placeholder="Tag name" />
+            </div>
+          </Show>
         </div>
       </div>
     </div>

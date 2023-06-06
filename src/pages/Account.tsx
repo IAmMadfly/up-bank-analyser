@@ -53,18 +53,28 @@ export const Account: Component = () => {
   })
 
   async function removeTag(transaction: TransactionResource, tag: TagInputResourceIdentifier) {
-    useClient((client) => {
-      client.tags.removeTagsFromTransaction(transaction.id, [tag])
-        .catch((err) => {
-          console.error(`Failed to remove tag. Error:`, err);
-        })
+    return new Promise((resolve, reject) => {
+      useClient((client) => {
+        client.tags.removeTagsFromTransaction(transaction.id, [tag])
+          .then(res => {
+            resolve(res)
+          })
+          .catch((err) => {
+            console.error(`Failed to remove tag. Error:`, err);
+            reject(err);
+          })
+      })
     })
   }
 
   async function addTag(transaction: TransactionResource, tagName: string) {
-    useClient((client) => {
-      client.tags.addTagsToTransaction(transaction.id, [{ id: tagName, type: "tags" }])
-    })
+    return new Promise((resolve, reject) => {
+      useClient((client) => {
+        client.tags.addTagsToTransaction(transaction.id, [{ id: tagName, type: "tags" }])
+          .then(res => resolve(res))
+          .catch(err => reject(err))
+      })
+    });
   }
 
   async function loadMore() {
@@ -89,50 +99,59 @@ export const Account: Component = () => {
       <NavBar />
       <div class="flex flex-col items-center mt-2">
         <Show when={account.state !== null} fallback={<div>loading...</div>}>
-          <div class="card flex flex-col w-96 bg-slate-700 mb-2">
-            <div class="card-title justify-center">
-              <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
+          <div class="grid lg:grid-cols-3 md:grid-cols-2">
+            {/* Transaction Summary */}
+            <div>
+              Something is here
             </div>
-            <div class="card-body">
-              <h4>{account.state ? new Date(account.state?.attributes.createdAt).toDateString() : ""}</h4>
-            </div>
-          </div>
-          <div class="flex flex-col items-center space-y-4">
-            <For each={transactionData.state} fallback={<div class="animation-spin">Loading</div>}>
-              {(transaction, index) => {
-                const prevDateString = transactions.state!.data[index() - 1]?.attributes.createdAt
-                const prevDate = prevDateString ? new Date(prevDateString) : undefined
-                const createDate = new Date(transaction.attributes.createdAt);
-                const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
-                const newDay = prevDate ? differentDay(createDate, prevDate) : true;
+            {/* The Transations */}
+            <div class="col-span-1">
+              <div class="card flex flex-col w-96 bg-slate-700 mb-2">
+                <div class="card-title justify-center">
+                  <h3 class="text-2xl">{account.state?.attributes.displayName} - ${account.state?.attributes.balance.value}</h3>
+                </div>
+                <div class="card-body">
+                  <h4>{account.state ? new Date(account.state?.attributes.createdAt).toDateString() : ""}</h4>
+                </div>
+              </div>
+              <div class="flex flex-col items-center space-y-4">
+                <For each={transactionData.state} fallback={<div class="animation-spin">Loading</div>}>
+                  {(transaction, index) => {
+                    const prevDateString = transactions.state!.data[index() - 1]?.attributes.createdAt
+                    const prevDate = prevDateString ? new Date(prevDateString) : undefined
+                    const createDate = new Date(transaction.attributes.createdAt);
+                    const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
+                    const newDay = prevDate ? differentDay(createDate, prevDate) : true;
 
-                const neg = transaction.attributes.amount.valueInBaseUnits < 0;
-                const amount = transaction.attributes.amount.valueInBaseUnits;
-                const roundUp = transaction.attributes.roundUp
-                const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
-                const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`;
+                    const neg = transaction.attributes.amount.valueInBaseUnits < 0;
+                    const amount = transaction.attributes.amount.valueInBaseUnits;
+                    const roundUp = transaction.attributes.roundUp
+                    const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
+                    const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`;
 
-                let newDayElem = <></>
-                if (newDay) {
-                  newDayElem = (
-                    <div class="card bg-slate-800 w-80 h-12">
-                      <div class="flex h-full justify-center items-center align-bottom">
-                        <span>{`${dayWeekMap[createDate.getDay()]}, ${createDate.toLocaleDateString()}`}</span>
-                      </div>
-                    </div>
-                  )
-                }
+                    let newDayElem = <></>
+                    if (newDay) {
+                      newDayElem = (
+                        <div class="card bg-slate-800 w-80 h-12">
+                          <div class="flex h-full justify-center items-center align-bottom">
+                            <span>{`${dayWeekMap[createDate.getDay()]}, ${createDate.toLocaleDateString()}`}</span>
+                          </div>
+                        </div>
+                      )
+                    }
 
-                return (
-                  <>
-                    {newDayElem}
-                    <Transaction transactionData={transaction} removeTag={removeTag} addTag={addTag} />
-                  </>
-                )
-              }}
-            </For>
-            <div class="flex justify-center">
-              <LoadMoreButton loading={loadingMore} loadMoreHandler={loadMore} />
+                    return (
+                      <>
+                        {newDayElem}
+                        <Transaction transactionData={transaction} removeTag={removeTag} addTag={addTag} />
+                      </>
+                    )
+                  }}
+                </For>
+                <div class="flex justify-center">
+                  <LoadMoreButton loading={loadingMore} loadMoreHandler={loadMore} />
+                </div>
+              </div>
             </div>
           </div>
         </Show>
