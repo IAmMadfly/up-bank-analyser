@@ -1,8 +1,9 @@
 import { HiOutlineArrowCircleUp } from "solid-icons/hi";
-import { Component, For, JSX, Show, createSignal } from "solid-js";
+import { Component, For, JSX, Show, createEffect, createSignal } from "solid-js";
 import { createStore } from "solid-js/store"
 import { TransactionResource, TagInputResourceIdentifier } from "up-bank-api";
 import { State } from "../helper/signal";
+import { useClient } from "../controller";
 
 
 const categoryIdToName: { [key: string]: string } = {
@@ -33,6 +34,7 @@ export const Transaction: Component<{
 }> = ({ transactionData, removeTag, addTag }) => {
   let buttonRef: HTMLInputElement | undefined = undefined;
   const creatingTag = new State(false);
+  const allTags = new State(new Array<string>());
   const [transaction, setTransaction] = createStore(transactionData);
   const createDate = new Date(transaction.attributes.createdAt);
   const settleDate = transaction.attributes.settledAt ? new Date(transaction.attributes.settledAt) : undefined;
@@ -46,6 +48,12 @@ export const Transaction: Component<{
   const categoryName = transaction.relationships.category.data?.id ?
     (categoryIdToName[transaction.relationships.category.data!.id] ?? transaction.relationships.category.data!.id) :
     "N/A"
+
+  createEffect(() => {
+    if (creatingTag.state) {
+      getTags();
+    }
+  })
 
   function removeTagHandler(unwantedTag: TagInputResourceIdentifier) {
     if (removeTag) {
@@ -68,6 +76,14 @@ export const Transaction: Component<{
     if (buttonRef) {
       buttonRef.focus()
     }
+  }
+
+  function getTags() {
+    useClient(async (client) => {
+      const tags = await client.tags.list();
+
+      allTags.state = tags.data.map(tag => tag.id);
+    })
   }
 
   const handleTagInput: JSX.ChangeEventHandlerUnion<HTMLInputElement, Event> = (ev) => {
@@ -121,7 +137,20 @@ export const Transaction: Component<{
           </For>
           <Show when={creatingTag.state} fallback={createTagButton}>
             <div>
-              <input ref={buttonRef} onblur={() => { creatingTag.state = false }} onChange={(ev) => handleTagInput(ev)} class="input input-sm" type="text" placeholder="Tag name" />
+              <input ref={buttonRef}
+                onBlur={() => { creatingTag.state = false }}
+                onChange={(ev) => handleTagInput(ev)}
+                class="input input-sm" type="text" placeholder="Tag name" list="tagList" />
+              <datalist id="tagList">
+                <For each={allTags.state}>
+                  {(tagName) => {
+
+                    return (
+                      <option value={tagName} />
+                    )
+                  }}
+                </For>
+              </datalist>
             </div>
           </Show>
         </div>
