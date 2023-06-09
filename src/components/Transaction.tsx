@@ -113,7 +113,7 @@ export const Transaction: Component<{
           <For each={transaction.relationships.tags.data}>
             {(tag) => {
               return (
-                <div class="badge badge-info hover:badge-error" onClick={() => { removeTagHandler(tag) }}>
+                <div class="badge badge-info cursor-pointer hover:badge-error" onClick={() => { removeTagHandler(tag) }}>
                   <span class="text-xs">{tag.id}</span>
                 </div>
               )
