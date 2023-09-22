@@ -1,7 +1,5 @@
 import { Component } from "solid-js";
 
-
-
 export const LoadingIcon: Component = () => {
 
   return (

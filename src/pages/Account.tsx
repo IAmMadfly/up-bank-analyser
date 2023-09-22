@@ -1,9 +1,8 @@
 import { useParams } from "@solidjs/router";
-import { Component, For, Show, createEffect } from "solid-js";
+import { Component, For, Show } from "solid-js";
 import { State } from "../helper/signal";
-import { AccountResource, ListTransactionsResponse, TagInputResourceIdentifier, TagResource, TransactionResource } from "up-bank-api";
-import { useClient } from "../controller";
-import { LoadingIcon } from "../components/LoadingIcon";
+import { AccountResource, ListTransactionsResponse, TagInputResourceIdentifier, TransactionResource } from "up-bank-api";
+import { useApi, useClient } from "../controller";
 import { NavBar } from "../components/NavBar";
 import { Transaction } from "../components/Transaction"
 import { LoadMoreButton } from "../components/LoadMoreButton";
@@ -39,18 +38,16 @@ export const Account: Component = () => {
   const transactionData = new State<Array<TransactionResource>>(new Array());
   const loadingMore = new State(false);
 
-  createEffect(() => {
-    useClient((client) => {
-      client.accounts.retrieve(accountId).then(accountRes => {
-        account.state = accountRes.data
-      })
-
-      client.transactions.listByAccount(accountId).then(transactionsRes => {
-        transactions.state = transactionsRes
-        transactionData.state = transactionsRes.data
-      })
+  useApi(client => {
+    client.accounts.retrieve(accountId).then(accountRes => {
+      account.state = accountRes.data
     })
-  })
+
+    client.transactions.listByAccount(accountId).then(transactionsRes => {
+      transactions.state = transactionsRes
+      transactionData.state = transactionsRes.data
+    })
+  });
 
   async function removeTag(transaction: TransactionResource, tag: TagInputResourceIdentifier) {
     return new Promise((resolve, reject) => {

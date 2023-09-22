@@ -1,6 +1,6 @@
-import { Component, For, createEffect, onMount } from "solid-js";
+import { Component, For } from "solid-js";
 import { State } from "../helper/signal";
-import { useClient } from "../controller";
+import { useApi } from "../controller";
 import { useNavigate } from "@solidjs/router";
 import { AccountResource, AccountTypeEnum } from "up-bank-api";
 import { NavBar } from "../components/NavBar";
@@ -15,13 +15,11 @@ export const Accounts: Component = () => {
   const navigate = useNavigate();
   const accountsState = new State(new Array<AccountResource>());
 
-  createEffect(() => {
-    useClient((client) => {
-      client.accounts.list().then(accounts => {
-        accounts.data.sort((a, b) => b.attributes.balance.valueInBaseUnits - a.attributes.balance.valueInBaseUnits);
-        accounts.data.sort((a, b) => (accountTypeMap.get(a.attributes.accountType) ?? 0) - (accountTypeMap.get(b.attributes.accountType) ?? 0))
-        accountsState.state = accounts.data
-      })
+  useApi(client => {
+    client.accounts.list().then(accounts => {
+      accounts.data.sort((a, b) => b.attributes.balance.valueInBaseUnits - a.attributes.balance.valueInBaseUnits);
+      accounts.data.sort((a, b) => (accountTypeMap.get(a.attributes.accountType) ?? 0) - (accountTypeMap.get(b.attributes.accountType) ?? 0))
+      accountsState.state = accounts.data
     })
   })
 

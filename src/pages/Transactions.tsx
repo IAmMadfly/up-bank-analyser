@@ -1,15 +1,10 @@
-import { Component, For, Show, createEffect, onMount } from "solid-js";
+import { Component, For } from "solid-js";
 import { NavBar } from "../components/NavBar";
-import { useClient } from "../controller";
+import { useApi } from "../controller";
 import { State } from "../helper/signal";
 import { ListTransactionsResponse } from "up-bank-api";
 import { Transaction } from "../components/Transaction";
 import { LoadMoreButton } from "../components/LoadMoreButton";
-
-
-
-
-
 
 
 export const Transactions: Component = () => {
@@ -20,13 +15,11 @@ export const Transactions: Component = () => {
     .flatMap(trans => trans.data)
     .filter(t => !t.relationships.transferAccount.data);
 
-  createEffect(() => {
-    useClient((client) => {
-      loading.state = true;
-      client.transactions.list().then((transactionsRes) => {
-        transactionListState.state = [transactionsRes];
-        loading.state = false;
-      })
+  useApi(client => {
+    loading.state = true;
+    client.transactions.list().then((transactionsRes) => {
+      transactionListState.state = [transactionsRes];
+      loading.state = false;
     })
   });
 
