@@ -44,6 +44,7 @@ export const Transaction: Component<{
   const roundUp = transaction.attributes.roundUp
   const totalAmount = amount + (roundUp ? roundUp?.amount.valueInBaseUnits : 0);
   const amountDisplay = `${neg ? '-' : ''}$${(Math.abs(totalAmount / 100)).toFixed(2)}`;
+  const timeDisplay = `${createDate.getHours() % 12}:${createDate.getMinutes().toString().padStart(2, '0')}`
 
   const categoryName = transaction.relationships.category.data?.id ?
     (categoryIdToName[transaction.relationships.category.data!.id] ?? transaction.relationships.category.data!.id) :
@@ -99,7 +100,7 @@ export const Transaction: Component<{
   )
 
   return (
-    <div class="card bg-slate-900 drop-shadow-lg">
+    <div class="card card-compact bg-slate-900 drop-shadow-lg">
       <div class="card-body w-96">
         <div class="flex justify-between">
           <div class="flex flex-col">
@@ -121,7 +122,7 @@ export const Transaction: Component<{
               </div>
             </Show>
             <div class="badge tooltip tooltip-bottom flex justify-end" data-tip={settleDate ? `Settled: ${settleDate.toLocaleString()}` : "Held"}>
-              <span class="text-xs whitespace-nowrap">{`${createDate.toLocaleTimeString()}`}</span>
+              <span class="text-xs whitespace-nowrap">{timeDisplay}</span>
             </div>
           </div>
         </div>
